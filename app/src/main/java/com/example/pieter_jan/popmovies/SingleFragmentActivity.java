@@ -11,7 +11,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 
 
-public abstract class SingleFragmentActivity extends AppCompatActivity {
+public abstract class SingleFragmentActivity extends AppCompatActivity{
 
     protected abstract android.support.v4.app.Fragment createFragment();
 

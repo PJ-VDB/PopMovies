@@ -33,12 +33,17 @@ public class MovieDBFetcher {
 
     private static final String BASE_URL = "https://api.themoviedb.org/3";
     private static final String FETCH_POPULAR = "/movie/popular";
-    private static final String FETCH_TOP_RATED = "";
+    private static final String FETCH_TOP_RATED = "/movie/top_rated";
     private static final String LANGUAGE = "en-US";
 
 
     public List<GalleryItem> fetchPopularMovies(){
         String url = buildUrl(FETCH_POPULAR);
+        return fetchItems(url);
+    }
+
+    public List<GalleryItem> fetchTopMovies(){
+        String url = buildUrl(FETCH_TOP_RATED);
         return fetchItems(url);
     }
 
@@ -53,7 +58,8 @@ public class MovieDBFetcher {
                     uri.appendPath("popular");
                 }
         if(method.equals(FETCH_TOP_RATED)){
-            uri.appendPath(FETCH_TOP_RATED);
+            uri.appendPath("movie");
+            uri.appendPath("top_rated");
         }
         uri.appendQueryParameter("api_key", API_KEY)
                 .appendQueryParameter("language", LANGUAGE);

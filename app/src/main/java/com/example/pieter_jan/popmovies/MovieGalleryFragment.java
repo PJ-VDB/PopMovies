@@ -1,9 +1,14 @@
 package com.example.pieter_jan.popmovies;
 
+import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -13,7 +18,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -37,6 +45,14 @@ public class MovieGalleryFragment extends Fragment{
 
     private List<GalleryItem> mItems = new ArrayList<>();
 
+    // The navigation drawer
+    @BindView(R.id.left_drawer) ListView mDrawerList;
+    @BindView(R.id.drawer_layout) DrawerLayout mDrawerLayout;
+    private ArrayAdapter<String> mAdapter;
+    private ActionBarDrawerToggle mDrawerToggle;
+    private String mActivityTitle;
+    ActionBar mActionBar;
+
     public static MovieGalleryFragment newInstance() {
         return new MovieGalleryFragment();
     }
@@ -45,8 +61,14 @@ public class MovieGalleryFragment extends Fragment{
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true); // Do it like this temporarily, easiest way to save state
-        setHasOptionsMenu(false); // TODO: add options menu for displaying results
+        setHasOptionsMenu(true); // TODO: add options menu for displaying results
 
+        mActionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
+        mActionBar.setDisplayHomeAsUpEnabled(true);
+        mActionBar.setHomeButtonEnabled(true);
+
+
+        // Populate the list
         updateItems();
     }
 
@@ -58,6 +80,9 @@ public class MovieGalleryFragment extends Fragment{
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        if (mDrawerToggle.onOptionsItemSelected(item)) {
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -67,16 +92,35 @@ public class MovieGalleryFragment extends Fragment{
 
         View view = inflater.inflate(R.layout.fragment_movie_gallery, container, false);
 
-        // Bind the recyclerview using butter knife
+        // Bind the view (recycler & drawer) using butter knife
         ButterKnife.bind(this, view);
-        mMovieRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
 
+        // RecyclerView
+        mMovieRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         setupAdapter();
+
+        mActivityTitle = getActivity().getTitle().toString();
+
+        // The navigation drawer
+        addDrawerItems();
+        setupDrawer();
 
         return view;
 
     }
 
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        mDrawerToggle.syncState();
+    }
+
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mDrawerToggle.onConfigurationChanged(newConfig);
+    }
 
     /**
      * Set up the adapter to the RecyclerView
@@ -88,39 +132,95 @@ public class MovieGalleryFragment extends Fragment{
         }
     }
 
+    /*
+    Set up the navigation drawer
+     */
+    private void addDrawerItems(){
+        String[] choiceArray = {"Popular movies", "Top rated movies"};
+        mAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, choiceArray);
+        mDrawerList.setAdapter(mAdapter);
+
+        mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//                Toast.makeText(getActivity(), "Time for an upgrade!" + position, Toast.LENGTH_SHORT).show();
+
+                if (position == 0){
+                    QueryPreferences.setStoredOrder(getActivity(), "popular");
+                    updateItems();
+                }
+
+
+                if (position == 1){
+                    QueryPreferences.setStoredOrder(getActivity(), "top");
+                    updateItems();
+                }
+
+            }
+        });
+    }
+
+    /*
+    Called after drawer items have been set up
+     */
+    private void setupDrawer(){
+        mDrawerToggle = new ActionBarDrawerToggle(getActivity(), mDrawerLayout, R.string.drawer_open, R.string.drawer_close) {
+            /** Called when a drawer has settled in a completely open state. */
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+                mActionBar.setTitle("Options");
+                getActivity().invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+            }
+
+            /** Called when a drawer has settled in a completely closed state. */
+            public void onDrawerClosed(View view) {
+                super.onDrawerClosed(view);
+                mActionBar.setTitle(mActivityTitle);
+                getActivity().invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+            }
+        };
+
+        mDrawerToggle.setDrawerIndicatorEnabled(true);
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+    }
+
     private void updateItems(){
+
+        String sortOrder = QueryPreferences.getStoredOrder(getActivity());
+
         if (mMovieRecyclerView != null){
             mItems.clear();
             mMovieRecyclerView.getAdapter().notifyDataSetChanged();
         }
 
-        new FetchItemTask(null).execute();
+        new FetchItemTask(sortOrder).execute();
         Log.d(TAG, "The size of mItems is :" + mItems.size());
 
     }
 
-//    private List<GalleryItem> fetchItems(){
-//        mItems = new MovieDBFetcher().fetchTopRatedMovies();
-//        return mItems;
-//
-//    }
-
-    // TODO: asynctask to do the background work
     /*
     Class to create a background thread for the network connection, networking is not allowed on the main thread (UI thread).
      */
     public class FetchItemTask extends AsyncTask<Integer, Void, List<GalleryItem>> {
 
-        private String mQuery;
+        private String mSortOrder;
 
-        public FetchItemTask(String query){
-            mQuery = query;
+        public FetchItemTask(String sortOrder){
+            mSortOrder = sortOrder;
         }
 
         @Override
         protected List<GalleryItem> doInBackground(Integer... params) {
 
-            return new MovieDBFetcher().fetchPopularMovies();
+            if (mSortOrder=="popular") {
+                return new MovieDBFetcher().fetchPopularMovies();
+            }
+            if (mSortOrder=="top"){
+                return new MovieDBFetcher().fetchTopMovies();
+            }
+            else {
+                return new MovieDBFetcher().fetchPopularMovies();
+            }
 
         }
 
@@ -149,19 +249,6 @@ public class MovieGalleryFragment extends Fragment{
                 mItemDescription = (TextView) itemView.findViewById(R.id.fragment_movie_item_description);
 
         }
-
-//        // Bind the image to the ViewHolder
-//        public void bindDrawable(Drawable drawable) {
-//            mItemImageView.setImageDrawable(drawable);
-//        }
-//
-//        public void bindGalleryItem(GalleryItem galleryItem){
-//            Picasso.with(getActivity())
-//                    .load(galleryItem.getUrl())
-//                    .placeholder(R.drawable.bill_up_close)
-//                    .into(mItemImageView);
-
-//        }
     }
 
     /**
@@ -185,9 +272,6 @@ public class MovieGalleryFragment extends Fragment{
         @Override
         public void onBindViewHolder(MovieHolder holder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
-
-//            Drawable placeHolder = getResources().getDrawable(R.drawable.bill_up_close);
-//            holder.bindDrawable(placeHolder); // Replace by Picasso
 
             Picasso.with(getActivity())
                     .load(galleryItem.getFullPosterPathw342())
