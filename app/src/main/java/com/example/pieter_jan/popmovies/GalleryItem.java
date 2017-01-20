@@ -1,5 +1,7 @@
 package com.example.pieter_jan.popmovies;
 
+import android.net.Uri;
+
 import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
@@ -167,5 +169,29 @@ public class GalleryItem {
 
     public void setVoteAverage(Double voteAverage) {
         this.voteAverage = voteAverage;
+    }
+
+
+    /*
+    Build the complete path where the poster of the movie can be found
+    The available sizes are: "w92", "w154", "w185", "w342", "w500", "w780", or "original". For most phones we recommend using “w185”.
+     */
+    public String getFullPosterPath(String size){
+
+        String BASE_URL =  "http://image.tmdb.org/t/p/";
+        Uri.Builder url = Uri.parse(BASE_URL)
+                .buildUpon();
+        url.appendPath(size)
+                .appendPath(getPosterPath().substring(1));
+
+        return url.toString();
+    }
+
+    public String getFullPosterPathw185(){
+        return getFullPosterPath("w185");
+    }
+
+    public String getFullPosterPathw342(){
+        return getFullPosterPath("w342");
     }
 }

@@ -4,7 +4,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -13,7 +13,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +69,7 @@ public class MovieGalleryFragment extends Fragment{
 
         // Bind the recyclerview using butter knife
         ButterKnife.bind(this, view);
-        mMovieRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(),3));
+        mMovieRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
 
         setupAdapter();
 
@@ -133,30 +136,31 @@ public class MovieGalleryFragment extends Fragment{
      */
     private class MovieHolder extends RecyclerView.ViewHolder{
 
-//        private ImageView mItemImageView;
-//        private TextView mItemMovieTitle;
 
-//        private ImageView mItemImageView;
+        private ImageView mItemImageView;
         private TextView mItemTitle;
+        private TextView mItemDescription;
 
         public MovieHolder(View itemView) {
             super(itemView);
 
-              mItemTitle = (TextView) itemView.findViewById(R.id.fragment_movie_gallery_title);
-//            mItemImageView = (ImageView) itemView.findViewById(R.id.fragment_movie_gallery_image_view);
+                mItemImageView = (ImageView) itemView.findViewById(R.id.fragment_movie_item_thumbnail);
+                mItemTitle = (TextView) itemView.findViewById(R.id.fragment_movie_item_title);
+                mItemDescription = (TextView) itemView.findViewById(R.id.fragment_movie_item_description);
+
         }
 
-        // Bind the image to the ViewHolder
+//        // Bind the image to the ViewHolder
 //        public void bindDrawable(Drawable drawable) {
 //            mItemImageView.setImageDrawable(drawable);
 //        }
-
+//
 //        public void bindGalleryItem(GalleryItem galleryItem){
 //            Picasso.with(getActivity())
 //                    .load(galleryItem.getUrl())
 //                    .placeholder(R.drawable.bill_up_close)
 //                    .into(mItemImageView);
-//
+
 //        }
     }
 
@@ -185,15 +189,21 @@ public class MovieGalleryFragment extends Fragment{
 //            Drawable placeHolder = getResources().getDrawable(R.drawable.bill_up_close);
 //            holder.bindDrawable(placeHolder); // Replace by Picasso
 
-            holder.mItemTitle.setText(galleryItem.getTitle());
+            Picasso.with(getActivity())
+                    .load(galleryItem.getFullPosterPathw342())
+                    .placeholder(R.drawable.bill_up_close)
+                    .fit()
+                    .into(holder.mItemImageView);
 
-            //TODO: add the downloaded image of the movie
+//            Log.d(TAG, "onBindViewHolder: " + galleryItem.getFullPosterPathw185());
+
+            holder.mItemTitle.setText(galleryItem.getTitle()); // Set title
+            holder.mItemDescription.setText(galleryItem.getOverview()); //Set Description
         }
 
         @Override
         public int getItemCount() {
             return mGalleryItems.size();
-//            return 0;
         }
     }
 
