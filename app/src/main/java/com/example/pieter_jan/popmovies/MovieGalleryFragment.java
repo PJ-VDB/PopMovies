@@ -1,5 +1,6 @@
 package com.example.pieter_jan.popmovies;
 
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -32,6 +33,8 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
+import static com.example.pieter_jan.popmovies.QueryPreferences.setStoredOrder;
+
 /**
  * Created by pieter-jan on 1/16/2017.
  */
@@ -52,6 +55,14 @@ public class MovieGalleryFragment extends Fragment{
     private ActionBarDrawerToggle mDrawerToggle;
     private String mActivityTitle;
     ActionBar mActionBar;
+
+    // Solution for endless scrolling
+    private int lastFetchedPage = 1;
+    private int previousTotal = 0;
+    private boolean loading = true;
+    private int visibleThreshold = 5;
+    int firstVisibleItem, visibleItemCount, totalItemCount;
+
 
     public static MovieGalleryFragment newInstance() {
         return new MovieGalleryFragment();
@@ -86,6 +97,8 @@ public class MovieGalleryFragment extends Fragment{
         return super.onOptionsItemSelected(item);
     }
 
+
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -96,7 +109,42 @@ public class MovieGalleryFragment extends Fragment{
         ButterKnife.bind(this, view);
 
         // RecyclerView
-        mMovieRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
+        mMovieRecyclerView.setLayoutManager(linearLayoutManager);
+
+        mMovieRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                visibleItemCount = mMovieRecyclerView.getChildCount();
+                totalItemCount = linearLayoutManager.getItemCount();
+                firstVisibleItem = linearLayoutManager.findFirstVisibleItemPosition();
+
+                if (loading) {
+                    if (totalItemCount > previousTotal) {
+                        loading = false;
+                        previousTotal = totalItemCount;
+                    }
+                }
+                if (!loading && (totalItemCount - visibleItemCount)
+                        <= (firstVisibleItem + visibleThreshold)) {
+                    // End has been reached
+
+//                    Log.i("Yaeye!", "end called");
+//                    Log.i(TAG, "Last fetched page: " + lastFetchedPage);
+
+                    // Do something
+                    new FetchItemTask(QueryPreferences.getStoredOrder(getActivity()), lastFetchedPage).execute();
+
+                    loading = true;
+                }
+
+            }
+
+        });
+
         setupAdapter();
 
         mActivityTitle = getActivity().getTitle().toString();
@@ -108,6 +156,7 @@ public class MovieGalleryFragment extends Fragment{
         return view;
 
     }
+
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
@@ -146,14 +195,20 @@ public class MovieGalleryFragment extends Fragment{
 //                Toast.makeText(getActivity(), "Time for an upgrade!" + position, Toast.LENGTH_SHORT).show();
 
                 if (position == 0){
+                    String oldOrder  = QueryPreferences.getStoredOrder(getActivity());
                     QueryPreferences.setStoredOrder(getActivity(), "popular");
-                    updateItems();
+                    if (oldOrder.equals("top")) {
+                        updateItems();
+                    }
                 }
 
 
                 if (position == 1){
-                    QueryPreferences.setStoredOrder(getActivity(), "top");
-                    updateItems();
+                    String oldOrder  = QueryPreferences.getStoredOrder(getActivity());
+                    setStoredOrder(getActivity(), "top");
+                    if (oldOrder.equals("popular")) {
+                        updateItems();
+                    }
                 }
 
             }
@@ -188,15 +243,25 @@ public class MovieGalleryFragment extends Fragment{
 
         String sortOrder = QueryPreferences.getStoredOrder(getActivity());
 
+        // Reset the scrolling params
+        lastFetchedPage = 1;
+        previousTotal = 0;
+        loading = true;
+        firstVisibleItem = 0;
+        visibleItemCount = 0;
+        totalItemCount = 0;
+
+        Log.i(TAG, "Page counter reset");
+
         if (mMovieRecyclerView != null){
             mItems.clear();
             mMovieRecyclerView.getAdapter().notifyDataSetChanged();
         }
 
-        new FetchItemTask(sortOrder).execute();
-        Log.d(TAG, "The size of mItems is :" + mItems.size());
+        new FetchItemTask(sortOrder, 1).execute();
 
     }
+
 
     /*
     Class to create a background thread for the network connection, networking is not allowed on the main thread (UI thread).
@@ -204,50 +269,78 @@ public class MovieGalleryFragment extends Fragment{
     public class FetchItemTask extends AsyncTask<Integer, Void, List<GalleryItem>> {
 
         private String mSortOrder;
+        private int mPage;
 
-        public FetchItemTask(String sortOrder){
+        public FetchItemTask(String sortOrder, int page){
             mSortOrder = sortOrder;
+            mPage = page;
         }
 
         @Override
         protected List<GalleryItem> doInBackground(Integer... params) {
 
-            if (mSortOrder=="popular") {
-                return new MovieDBFetcher().fetchPopularMovies();
+            if (mSortOrder.equals("popular")) {
+                return new MovieDBFetcher().fetchPopularMovies(mPage);
             }
-            if (mSortOrder=="top"){
-                return new MovieDBFetcher().fetchTopMovies();
+            if (mSortOrder.equals("top")){
+                return new MovieDBFetcher().fetchTopMovies(mPage);
             }
             else {
-                return new MovieDBFetcher().fetchPopularMovies();
+                return new MovieDBFetcher().fetchPopularMovies(mPage);
             }
 
         }
 
         @Override
         protected void onPostExecute(List<GalleryItem> galleryItems) {
-            mItems = galleryItems;
-            setupAdapter();
+
+            if(lastFetchedPage > 1){
+                mItems.addAll(galleryItems);
+                mMovieRecyclerView.getAdapter().notifyDataSetChanged();
+            }
+            else{
+                mItems = galleryItems;
+                setupAdapter();
+            }
+
+            lastFetchedPage++;
         }
     }
 
     /**
      * ViewHolder class
      */
-    private class MovieHolder extends RecyclerView.ViewHolder{
+    private class MovieHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
 
         private ImageView mItemImageView;
         private TextView mItemTitle;
-        private TextView mItemDescription;
+        private GalleryItem mGalleryItem;
 
         public MovieHolder(View itemView) {
             super(itemView);
+            itemView.setOnClickListener(this);
 
                 mItemImageView = (ImageView) itemView.findViewById(R.id.fragment_movie_item_thumbnail);
                 mItemTitle = (TextView) itemView.findViewById(R.id.fragment_movie_item_title);
-                mItemDescription = (TextView) itemView.findViewById(R.id.fragment_movie_item_description);
 
+        }
+
+        public void bindGalleryItem(GalleryItem galleryItem){
+            mGalleryItem = galleryItem;
+        }
+
+
+        @Override
+        public void onClick(View view) {
+            // Open a detail activity of the movie on click
+            view.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new MovieDetailActivity().newIntent(getActivity(), mGalleryItem);
+                    startActivity(intent);
+                }
+            });
         }
     }
 
@@ -258,6 +351,9 @@ public class MovieGalleryFragment extends Fragment{
 
         private List<GalleryItem> mGalleryItems;
 
+        // Endless scrolling
+        private int lastBoundPosition;
+
         public MovieAdapter(List<GalleryItem> galleryItems) {
             mGalleryItems = galleryItems;
         }
@@ -266,6 +362,7 @@ public class MovieGalleryFragment extends Fragment{
         public MovieHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater inflater = LayoutInflater.from(getActivity());
             View view = inflater.inflate(R.layout.gallery_item, parent, false);
+
             return new MovieHolder(view);
         }
 
@@ -273,23 +370,35 @@ public class MovieGalleryFragment extends Fragment{
         public void onBindViewHolder(MovieHolder holder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
 
+            //TODO: Some images like the one from Interstellar are there but do not load into the imageview
             Picasso.with(getActivity())
                     .load(galleryItem.getFullPosterPathw342())
-                    .placeholder(R.drawable.bill_up_close)
+//                    .placeholder(R.drawable.bill_up_close)
                     .fit()
                     .into(holder.mItemImageView);
 
 //            Log.d(TAG, "onBindViewHolder: " + galleryItem.getFullPosterPathw185());
 
             holder.mItemTitle.setText(galleryItem.getTitle()); // Set title
-            holder.mItemDescription.setText(galleryItem.getOverview()); //Set Description
+            holder.bindGalleryItem(galleryItem);
+
+            lastBoundPosition = position;
+//            Log.i(TAG,"Last bound position is " + Integer.toString(lastBoundPosition));
+
         }
 
         @Override
         public int getItemCount() {
             return mGalleryItems.size();
         }
+
+        public int getLastBoundPosition() {
+            return lastBoundPosition;
+        }
+
     }
+
+
 
 
 }

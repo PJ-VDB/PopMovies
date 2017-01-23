@@ -2,5 +2,10 @@
     <string name="app_name">PopMovies</string>
     <string name="drawer_open">Open navigation drawer</string>
     <string name="drawer_close">Close navigation drawer</string>
+    <string name="movie_detail_label">Description</string>
+    <string name="movie_description_label">Description</string>
+    <string name="movie_detail_title_hint">Placeholder for movie title.</string>
+    <string name="movie_detail_rating_hint">Rating</string>
+    <string name="movie_detail_release_date_hint">Release date here</string>
 
 </resources>

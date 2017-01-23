@@ -4,21 +4,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.Fragment;
 
-import java.util.UUID;
-
 public class MovieDetailActivity extends SingleFragmentActivity {
 
-    private static final String EXTRA_CRIME_ID = "com.example.pieterjan.criminalintent.crime_id";
+    private static final String EXTRA_GALLERY_ITEM = "com.example.pieterjan.criminalintent.gallery_item";
 
     @Override
     protected Fragment createFragment() {
-        UUID crimeId = (UUID) getIntent().getSerializableExtra(EXTRA_CRIME_ID);
-        return CrimeFragment.newInstance(crimeId);
+
+        GalleryItem galleryItem = getIntent().getParcelableExtra(EXTRA_GALLERY_ITEM);
+
+        return MovieDetailFragment.newInstance(galleryItem);
     }
 
-    public static Intent newIntent(Context packageContext, UUID crimeId){
-        Intent intent = new Intent(packageContext, CrimeActivity.class);
-        intent.putExtra(EXTRA_CRIME_ID, crimeId);
+    public static Intent newIntent(Context packageContext, GalleryItem galleryItem){
+        Intent intent = new Intent(packageContext, MovieDetailActivity.class);
+        intent.putExtra(EXTRA_GALLERY_ITEM, galleryItem);
         return intent;
     }
 

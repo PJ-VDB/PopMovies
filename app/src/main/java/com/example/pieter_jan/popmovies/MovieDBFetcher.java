@@ -37,20 +37,20 @@ public class MovieDBFetcher {
     private static final String LANGUAGE = "en-US";
 
 
-    public List<GalleryItem> fetchPopularMovies(){
-        String url = buildUrl(FETCH_POPULAR);
+    public List<GalleryItem> fetchPopularMovies(int page){
+        String url = buildUrl(FETCH_POPULAR, page);
         return fetchItems(url);
     }
 
-    public List<GalleryItem> fetchTopMovies(){
-        String url = buildUrl(FETCH_TOP_RATED);
+    public List<GalleryItem> fetchTopMovies(int page){
+        String url = buildUrl(FETCH_TOP_RATED, page);
         return fetchItems(url);
     }
 
     /*
     Build the URL string: top rated movies / popular movies
      */
-    private String buildUrl(String method){
+    private String buildUrl(String method, int page){
         Uri.Builder uri = Uri.parse(BASE_URL)
                 .buildUpon();
                 if(method.equals(FETCH_POPULAR)){
@@ -62,7 +62,8 @@ public class MovieDBFetcher {
             uri.appendPath("top_rated");
         }
         uri.appendQueryParameter("api_key", API_KEY)
-                .appendQueryParameter("language", LANGUAGE);
+                .appendQueryParameter("language", LANGUAGE)
+                .appendQueryParameter("page", String.valueOf(page));
 
         String url = uri.build().toString();
 

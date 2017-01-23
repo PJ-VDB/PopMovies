@@ -1,6 +1,8 @@
 package com.example.pieter_jan.popmovies;
 
 import android.net.Uri;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -11,7 +13,7 @@ import java.util.List;
  * Created by pieter-jan on 1/16/2017.
  */
 
-public class GalleryItem {
+public class GalleryItem implements Parcelable {
 
     @SerializedName("poster_path")
     private String posterPath;
@@ -42,6 +44,9 @@ public class GalleryItem {
     @SerializedName("vote_average")
     private Double voteAverage;
 
+    private String posterPathw185;
+    private String posterPathw342;
+
     public GalleryItem(String posterPath, boolean adult, String overview, String releaseDate, List<Integer> genreIds, Integer id, String originalTitle, String originalLanguage, String title, String backdropPath, Double popularity, Integer voteCount, Boolean video, Double voteAverage) {
         this.posterPath = posterPath;
         this.adult = adult;
@@ -57,6 +62,8 @@ public class GalleryItem {
         this.voteCount = voteCount;
         this.video = video;
         this.voteAverage = voteAverage;
+        this.posterPathw185 = getFullPosterPathw185();
+        this.posterPathw342 = getFullPosterPathw342();
     }
 
     public boolean isAdult() {
@@ -194,4 +201,82 @@ public class GalleryItem {
     public String getFullPosterPathw342(){
         return getFullPosterPath("w342");
     }
+
+    @Override
+    public int describeContents() {
+        return hashCode();
+    }
+
+    /*
+    Write the object values to a parcel for storage
+     */
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        // write all properties to the parcel
+
+        dest.writeString(posterPath);
+        dest.writeValue(adult);
+        dest.writeString(overview);
+        dest.writeString(releaseDate);
+//        dest.writeList(genreIds);
+        dest.writeInt(id);
+        dest.writeString(originalTitle);
+        dest.writeString(originalLanguage);
+        dest.writeString(title);
+        dest.writeString(backdropPath);
+        dest.writeDouble(popularity);
+        dest.writeInt(voteCount);
+        dest.writeValue(video);
+        dest.writeDouble(voteAverage);
+        dest.writeString(posterPathw185);
+        dest.writeString(posterPathw342);
+
+
+    }
+
+    /*
+    Constructor used for parcel
+     */
+    public GalleryItem(Parcel parcel){
+        // Read and set saved values from parcel
+
+//        List<Integer> genres = null;
+
+        posterPath = parcel.readString();
+        adult = (Boolean) parcel.readValue(null);
+        overview = parcel.readString();
+        releaseDate = parcel.readString();
+//        genreIds = parcel.readList(genres, List.class.getClassLoader());
+        id = parcel.readInt();
+        originalTitle = parcel.readString();
+        originalLanguage = parcel.readString();
+        title = parcel.readString();
+        backdropPath = parcel.readString();
+        popularity = parcel.readDouble();
+        voteCount = parcel.readInt();
+        video = (Boolean) parcel.readValue(null);
+        voteAverage = parcel.readDouble();
+        posterPathw185 = parcel.readString();
+        posterPathw342 = parcel.readString();
+
+
+    }
+
+    /*
+    Creator - used when un-parceling the parcel (creates the object)
+     */
+    public static final Parcelable.Creator<GalleryItem> CREATOR = new Parcelable.Creator<GalleryItem>(){
+
+        @Override
+        public GalleryItem createFromParcel(Parcel source) {
+            return new GalleryItem(source);
+        }
+
+        @Override
+        public GalleryItem[] newArray(int size) {
+            return new GalleryItem[0];
+        }
+    };
+
+
 }
