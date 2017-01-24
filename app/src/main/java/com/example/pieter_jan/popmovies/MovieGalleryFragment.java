@@ -337,6 +337,8 @@ public class MovieGalleryFragment extends Fragment{
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    Log.d("", "ImageView clicked");
+                    Log.d("", "ImageView clicked");
                     Intent intent = new MovieDetailActivity().newIntent(getActivity(), mGalleryItem);
                     startActivity(intent);
                 }

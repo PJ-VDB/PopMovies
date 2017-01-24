@@ -25,7 +25,6 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_below="@+id/fragment_movie_item_thumbnail"
-            android:maxLines="3"
             android:padding="8dp"
             android:textColor="#222"
             android:textStyle="bold"

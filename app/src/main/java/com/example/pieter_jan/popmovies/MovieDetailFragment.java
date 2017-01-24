@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
 import butterknife.BindView;
@@ -34,6 +35,7 @@ public class MovieDetailFragment extends Fragment {
     @BindView(R.id.fragment_movie_detail_thumbnail) ImageView mMovieThumbnail;
     @BindView(R.id.fragment_movie_detail_release_date) TextView mMovieReleaseDate;
     @BindView(R.id.fragment_movie_detail_rating) TextView mMovieRating;
+    @BindView(R.id.black_mask) View mBlackMask;
 
 
 
@@ -55,7 +57,7 @@ public class MovieDetailFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_movie_detail, container, false); // second parameter is the view's parent;
+        View v = inflater.inflate(R.layout.fragment_movie_detail_test, container, false); // second parameter is the view's parent;
 
         ButterKnife.bind(this, v);
 
@@ -68,8 +70,17 @@ public class MovieDetailFragment extends Fragment {
                 .load(mGalleryItem.getFullPosterPathw342())
 //                    .placeholder(R.drawable.bill_up_close)
                 .fit()
-                .into(mMovieThumbnail);
+                .into(mMovieThumbnail, new Callback() {
+                            @Override
+                            public void onSuccess() {
+                                mBlackMask.setVisibility(View.VISIBLE);
+                            }
 
+                            @Override
+                            public void onError() {
+
+                            }
+                        });
 
         return v;
     }
