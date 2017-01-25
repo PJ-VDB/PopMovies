@@ -252,24 +252,30 @@ public class MovieGalleryFragment extends Fragment{
     Called after drawer items have been set up
      */
     private void setupDrawer(){
-        mDrawerToggle = new ActionBarDrawerToggle(getActivity(), mDrawerLayout, R.string.drawer_open, R.string.drawer_close) {
-            /** Called when a drawer has settled in a completely open state. */
-            public void onDrawerOpened(View drawerView) {
-                super.onDrawerOpened(drawerView);
-                mActionBar.setTitle("Options");
-                getActivity().invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
-            }
+        if(mNetworkConnected) {
+            mDrawerToggle = new ActionBarDrawerToggle(getActivity(), mDrawerLayout, R.string.drawer_open, R.string.drawer_close) {
+                /**
+                 * Called when a drawer has settled in a completely open state.
+                 */
+                public void onDrawerOpened(View drawerView) {
+                    super.onDrawerOpened(drawerView);
+                    mActionBar.setTitle("Options");
+                    getActivity().invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+                }
 
-            /** Called when a drawer has settled in a completely closed state. */
-            public void onDrawerClosed(View view) {
-                super.onDrawerClosed(view);
-                mActionBar.setTitle(mActivityTitle);
-                getActivity().invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
-            }
-        };
+                /**
+                 * Called when a drawer has settled in a completely closed state.
+                 */
+                public void onDrawerClosed(View view) {
+                    super.onDrawerClosed(view);
+                    mActionBar.setTitle(mActivityTitle);
+                    getActivity().invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+                }
+            };
 
-        mDrawerToggle.setDrawerIndicatorEnabled(true);
-        mDrawerLayout.setDrawerListener(mDrawerToggle);
+            mDrawerToggle.setDrawerIndicatorEnabled(true);
+            mDrawerLayout.setDrawerListener(mDrawerToggle);
+        }
     }
 
     private void updateItems(){
