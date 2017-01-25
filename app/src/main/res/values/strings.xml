@@ -7,5 +7,6 @@
     <string name="movie_detail_title_hint">Placeholder for movie title.</string>
     <string name="movie_detail_rating_hint">Rating</string>
     <string name="movie_detail_release_date_hint">Release date here</string>
+    <string name="no_network_connection">No network connection available!</string>
 
 </resources>

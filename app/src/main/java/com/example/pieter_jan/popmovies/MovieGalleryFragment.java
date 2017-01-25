@@ -2,6 +2,7 @@ package com.example.pieter_jan.popmovies;
 
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -10,7 +11,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -33,6 +34,7 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
+import static android.content.Context.CONNECTIVITY_SERVICE;
 import static com.example.pieter_jan.popmovies.QueryPreferences.setStoredOrder;
 
 /**
@@ -45,6 +47,7 @@ public class MovieGalleryFragment extends Fragment{
 
     // Setting up the recyclerview
     @BindView(R.id.fragment_movie_gallery_recycler_view) RecyclerView mMovieRecyclerView;
+    @BindView(R.id.no_connection) TextView mNoConnectionTextView;
 
     private List<GalleryItem> mItems = new ArrayList<>();
 
@@ -63,10 +66,25 @@ public class MovieGalleryFragment extends Fragment{
     private int visibleThreshold = 5;
     int firstVisibleItem, visibleItemCount, totalItemCount;
 
+    // Check network connection
+    boolean mNetworkConnected = false;
+
 
     public static MovieGalleryFragment newInstance() {
         return new MovieGalleryFragment();
     }
+
+//    /*
+//    Avoid disappearing of navigation bar; TODO: better fix for this
+//     */
+//    @Override
+//    public void onResume() {
+//        super.onResume();
+//        mActionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
+//        mActionBar.setDisplayHomeAsUpEnabled(true);
+//        mActionBar.setHomeButtonEnabled(true);
+//    }
+
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -74,13 +92,24 @@ public class MovieGalleryFragment extends Fragment{
         setRetainInstance(true); // Do it like this temporarily, easiest way to save state
         setHasOptionsMenu(true); // TODO: add options menu for displaying results
 
-        mActionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
-        mActionBar.setDisplayHomeAsUpEnabled(true);
-        mActionBar.setHomeButtonEnabled(true);
+        initializeSortOrder();
+        mNetworkConnected = isNetworkAvailableAndConnected();
 
+        if(mNetworkConnected) {
+            mActionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
+            mActionBar.setDisplayHomeAsUpEnabled(true);
+            mActionBar.setHomeButtonEnabled(true);
 
-        // Populate the list
-        updateItems();
+            updateItems();
+        }
+
+    }
+
+    private void initializeSortOrder() {
+        if(QueryPreferences.getStoredOrder(getActivity()) == null) {
+            QueryPreferences.setStoredOrder(getActivity(), "popular"); // Set the initial sort order to popular, this needs to be changed later if setRetainInstance is not true
+            Log.i(TAG, "Sort order initialized");
+        }
     }
 
     //TODO: implement options
@@ -108,50 +137,50 @@ public class MovieGalleryFragment extends Fragment{
         // Bind the view (recycler & drawer) using butter knife
         ButterKnife.bind(this, view);
 
-        // RecyclerView
-        final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
-        mMovieRecyclerView.setLayoutManager(linearLayoutManager);
 
-        mMovieRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        if(mNetworkConnected) {
+            final GridLayoutManager gridLayoutManager = new GridLayoutManager(getActivity(), 2);
+            mMovieRecyclerView.setLayoutManager(gridLayoutManager);
 
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
+            mMovieRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
-                visibleItemCount = mMovieRecyclerView.getChildCount();
-                totalItemCount = linearLayoutManager.getItemCount();
-                firstVisibleItem = linearLayoutManager.findFirstVisibleItemPosition();
+                @Override
+                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
 
-                if (loading) {
-                    if (totalItemCount > previousTotal) {
-                        loading = false;
-                        previousTotal = totalItemCount;
+                    //Gridlayout
+                    visibleItemCount = mMovieRecyclerView.getChildCount();
+                    totalItemCount = gridLayoutManager.getItemCount();
+                    firstVisibleItem = gridLayoutManager.findFirstVisibleItemPosition();
+
+                    if (loading) {
+                        if (totalItemCount > previousTotal) {
+                            loading = false;
+                            previousTotal = totalItemCount;
+                        }
                     }
-                }
-                if (!loading && (totalItemCount - visibleItemCount)
-                        <= (firstVisibleItem + visibleThreshold)) {
-                    // End has been reached
+                    if (!loading && (totalItemCount - visibleItemCount)
+                            <= (firstVisibleItem + visibleThreshold)) {
+                        // End has been reached
 
-//                    Log.i("Yaeye!", "end called");
-//                    Log.i(TAG, "Last fetched page: " + lastFetchedPage);
+                        new FetchItemTask(QueryPreferences.getStoredOrder(getActivity()), lastFetchedPage).execute();
 
-                    // Do something
-                    new FetchItemTask(QueryPreferences.getStoredOrder(getActivity()), lastFetchedPage).execute();
+                        loading = true;
+                    }
 
-                    loading = true;
                 }
 
-            }
+            });
 
-        });
+            setupAdapter();
 
-        setupAdapter();
-
-        mActivityTitle = getActivity().getTitle().toString();
-
-        // The navigation drawer
-        addDrawerItems();
-        setupDrawer();
+            // The navigation drawer
+            mActivityTitle = getActivity().getTitle().toString();
+            addDrawerItems();
+            setupDrawer();
+        } else {
+            mNoConnectionTextView.setVisibility(View.VISIBLE);
+        }
 
         return view;
 
@@ -161,14 +190,20 @@ public class MovieGalleryFragment extends Fragment{
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mDrawerToggle.syncState();
+
+        if(mNetworkConnected) {
+            mDrawerToggle.syncState();
+        }
     }
 
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        mDrawerToggle.onConfigurationChanged(newConfig);
+
+        if(mNetworkConnected) {
+            mDrawerToggle.onConfigurationChanged(newConfig);
+        }
     }
 
     /**
@@ -242,14 +277,7 @@ public class MovieGalleryFragment extends Fragment{
     private void updateItems(){
 
         String sortOrder = QueryPreferences.getStoredOrder(getActivity());
-
-        // Reset the scrolling params
-        lastFetchedPage = 1;
-        previousTotal = 0;
-        loading = true;
-        firstVisibleItem = 0;
-        visibleItemCount = 0;
-        totalItemCount = 0;
+        resetScrolling();
 
         Log.i(TAG, "Page counter reset");
 
@@ -261,6 +289,26 @@ public class MovieGalleryFragment extends Fragment{
         new FetchItemTask(sortOrder, 1).execute();
 
     }
+
+    private void resetScrolling() {
+        // Reset the scrolling params
+        lastFetchedPage = 1;
+        previousTotal = 0;
+        loading = true;
+        firstVisibleItem = 0;
+        visibleItemCount = 0;
+        totalItemCount = 0;
+    }
+
+    private boolean isNetworkAvailableAndConnected() {
+        ConnectivityManager cm =
+                (ConnectivityManager) getActivity().getSystemService(CONNECTIVITY_SERVICE);
+        boolean isNetworkAvailable = cm.getActiveNetworkInfo() != null;
+        boolean isNetworkConnected = isNetworkAvailable &&
+                cm.getActiveNetworkInfo().isConnected();
+        return isNetworkConnected;
+    }
+
 
 
     /*
@@ -310,7 +358,7 @@ public class MovieGalleryFragment extends Fragment{
     /**
      * ViewHolder class
      */
-    private class MovieHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+    private class MovieHolder extends RecyclerView.ViewHolder{
 
 
         private ImageView mItemImageView;
@@ -319,10 +367,17 @@ public class MovieGalleryFragment extends Fragment{
 
         public MovieHolder(View itemView) {
             super(itemView);
-            itemView.setOnClickListener(this);
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.i(TAG, "Item clicked");
+                    Intent intent = new MovieDetailActivity().newIntent(getActivity(), mGalleryItem);
+                    startActivity(intent);
+                }
+            });
 
-                mItemImageView = (ImageView) itemView.findViewById(R.id.fragment_movie_item_thumbnail);
-                mItemTitle = (TextView) itemView.findViewById(R.id.fragment_movie_item_title);
+            mItemImageView = (ImageView) itemView.findViewById(R.id.fragment_movie_item_thumbnail);
+//                mItemTitle = (TextView) itemView.findViewById(R.id.fragment_movie_item_title);
 
         }
 
@@ -330,20 +385,6 @@ public class MovieGalleryFragment extends Fragment{
             mGalleryItem = galleryItem;
         }
 
-
-        @Override
-        public void onClick(View view) {
-            // Open a detail activity of the movie on click
-            view.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Log.d("", "ImageView clicked");
-                    Log.d("", "ImageView clicked");
-                    Intent intent = new MovieDetailActivity().newIntent(getActivity(), mGalleryItem);
-                    startActivity(intent);
-                }
-            });
-        }
     }
 
     /**
@@ -381,7 +422,7 @@ public class MovieGalleryFragment extends Fragment{
 
 //            Log.d(TAG, "onBindViewHolder: " + galleryItem.getFullPosterPathw185());
 
-            holder.mItemTitle.setText(galleryItem.getTitle()); // Set title
+//            holder.mItemTitle.setText(galleryItem.getTitle()); // Set title
             holder.bindGalleryItem(galleryItem);
 
             lastBoundPosition = position;

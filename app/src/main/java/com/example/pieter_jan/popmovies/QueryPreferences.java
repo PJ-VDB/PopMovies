@@ -10,6 +10,7 @@ import android.preference.PreferenceManager;
 public class QueryPreferences {
     private static final String PREF_SORT_ORDER = "sortOrder"; // the key for sorting results
     private static final String PREF_LAST_RESULT_ID  = "lastResultId";
+
     /*
     Read the query from shared preferences
     (does not have a context of its own, that's why a context needs to be passed in)
