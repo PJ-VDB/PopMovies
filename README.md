@@ -10,6 +10,7 @@ In 'gradle.properties' add:   MyApiKey="actualapikey"
 # Credits
 
 The Big Nerd Ranch Guide 
+
 https://github.com/thiagokimo/TMDb for help on the UI
 
 
