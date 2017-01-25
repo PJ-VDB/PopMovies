@@ -77,13 +77,11 @@ public class MovieGalleryFragment extends Fragment{
 //    /*
 //    Avoid disappearing of navigation bar; TODO: better fix for this
 //     */
-//    @Override
-//    public void onResume() {
-//        super.onResume();
-//        mActionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
-//        mActionBar.setDisplayHomeAsUpEnabled(true);
-//        mActionBar.setHomeButtonEnabled(true);
-//    }
+    @Override
+    public void onResume() {
+        super.onResume();
+        setupDrawer();
+    }
 
 
     @Override
