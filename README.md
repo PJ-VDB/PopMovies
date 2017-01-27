@@ -7,6 +7,15 @@ The goal is to use the API from www.themoviedb.org and show a list of popular an
 
 In 'gradle.properties' add:   MyApiKey="actualapikey" 
 
+# Screenshots
+
+<p align="center">
+  <img src="https://github.com/PJ-VDB/PopMovies/blob/master/screenshot_overview.png" width="230"/>
+  <img src="https://github.com/PJ-VDB/PopMovies/blob/master/screenshot_detail.png" width="230"/>
+  <img src="https://github.com/PJ-VDB/PopMovies/blob/master/screenshot_options.png" width="230"/>
+</p>
+
+
 # Credits
 
 Udacity
