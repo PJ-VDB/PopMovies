@@ -25,8 +25,6 @@ public class MovieDBFetcher {
 
     private static final String API_KEY = BuildConfig.MY_API_KEY; // The API key hidden in gradle
 
-
-
     // TODO: declare the statics for the uri request
     // TODO: parse them into a uri
 
@@ -36,31 +34,58 @@ public class MovieDBFetcher {
     private static final String FETCH_TOP_RATED = "/movie/top_rated";
     private static final String LANGUAGE = "en-US";
 
+    private static final String FETCH_MOVIE_VIDEOS = "/movie/{movie_id}/videos";
+    private static final String FETCH_MOVIE_REVIEWS = "/movie/{movie_id}/reviews";
+
+
 
     public List<GalleryItem> fetchPopularMovies(int page){
-        String url = buildUrl(FETCH_POPULAR, page);
+        String url = buildUrl(FETCH_POPULAR, page, 0);
         return fetchItems(url);
     }
 
     public List<GalleryItem> fetchTopMovies(int page){
-        String url = buildUrl(FETCH_TOP_RATED, page);
+        String url = buildUrl(FETCH_TOP_RATED, page, 0);
         return fetchItems(url);
+    }
+
+    public List<MovieVideo> fetchMovieVideos(int movieId){
+        String url = buildUrl(FETCH_MOVIE_VIDEOS, 1, movieId);
+        return fetchVideos(url);
+    }
+
+    public List<MovieReview> fetchMovieReviews(int movieId){
+        String url = buildUrl(FETCH_MOVIE_REVIEWS, 1, movieId);
+        return fetchReviews(url);
     }
 
     /*
     Build the URL string: top rated movies / popular movies
      */
-    private String buildUrl(String method, int page){
+    private String buildUrl(String method, int page, int movieId){
+
         Uri.Builder uri = Uri.parse(BASE_URL)
                 .buildUpon();
-                if(method.equals(FETCH_POPULAR)){
-                    uri.appendPath("movie");
-                    uri.appendPath("popular");
-                }
+        if(method.equals(FETCH_POPULAR)){
+            uri.appendPath("movie");
+            uri.appendPath("popular");
+        }
         if(method.equals(FETCH_TOP_RATED)){
             uri.appendPath("movie");
             uri.appendPath("top_rated");
         }
+        if(method.equals(FETCH_MOVIE_VIDEOS)){
+            uri.appendPath("movie");
+            uri.appendPath(Integer.toString(movieId));
+            uri.appendPath("videos");
+        }
+        if(method.equals(FETCH_MOVIE_REVIEWS)){
+            uri.appendPath("movie");
+            uri.appendPath(Integer.toString(movieId));
+            uri.appendPath("reviews");
+        }
+
+
         uri.appendQueryParameter("api_key", API_KEY)
                 .appendQueryParameter("language", LANGUAGE)
                 .appendQueryParameter("page", String.valueOf(page));
@@ -70,7 +95,6 @@ public class MovieDBFetcher {
         Log.i(TAG, "The API request url is: " + url);
 
         return url;
-
     }
 
 
@@ -95,6 +119,54 @@ public class MovieDBFetcher {
         }
 
         return items;
+
+    }
+
+    public List<MovieVideo> fetchVideos(String url){
+
+        List<MovieVideo> mMovieVideos = new ArrayList<>();
+        try {
+
+            String jsonString = getUrlString(url);
+
+            Gson gson = new Gson();
+            MovieVideo.Response response = gson.fromJson(jsonString, MovieVideo.Response.class);
+            mMovieVideos = response.getMovieVideos();
+
+            Log.i(TAG, "Received JSON " + jsonString);
+            Log.i(TAG, "Amount of trailers: " + mMovieVideos.size());
+
+        }
+        catch (IOException ioe) {
+
+            Log.e(TAG, "Failed to fetch items", ioe);
+        }
+
+        return mMovieVideos;
+
+    }
+
+    public List<MovieReview> fetchReviews(String url){
+
+        List<MovieReview> mMovieReviews = new ArrayList<>();
+        try {
+
+            String jsonString = getUrlString(url);
+
+            Gson gson = new Gson();
+            MovieReview.Response response = gson.fromJson(jsonString, MovieReview.Response.class);
+            mMovieReviews = response.getMovieReviews();
+
+            Log.i(TAG, "Received JSON " + jsonString);
+            Log.i(TAG, "Amount of reviews: " + mMovieReviews.size());
+
+        }
+        catch (IOException ioe) {
+
+            Log.e(TAG, "Failed to fetch items", ioe);
+        }
+
+        return mMovieReviews;
 
     }
 

@@ -66,6 +66,26 @@ public class GalleryItem implements Parcelable {
         this.posterPathw342 = getFullPosterPathw342();
     }
 
+//    public GalleryItem(String posterPath, String overview, String releaseDate, int movieId, String title, String backdropPath, double popularity,
+//                       int voteCount, double voteAverage){
+//
+//        this.posterPath = posterPath;
+//        this.overview = overview;
+//        this.releaseDate = releaseDate;
+//        this.id = movieId;
+//        this.title = title;
+//        this.backdropPath = backdropPath;
+//        this.popularity = popularity;
+//        this.voteCount = voteCount;
+//        this.voteAverage = voteAverage;
+//
+//    }
+
+    public GalleryItem(){
+
+    }
+
+
     public boolean isAdult() {
         return adult;
     }

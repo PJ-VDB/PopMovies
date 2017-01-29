@@ -1,12 +1,19 @@
 package com.example.pieter_jan.popmovies;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -26,10 +33,13 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.example.pieter_jan.popmovies.database.MovieCursorWrapper;
+import com.example.pieter_jan.popmovies.database.MoviesContract;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -40,7 +50,7 @@ import static com.example.pieter_jan.popmovies.QueryPreferences.setStoredOrder;
 /**
  * Created by pieter-jan on 1/16/2017.
  */
-public class MovieGalleryFragment extends Fragment{
+public class MovieGalleryFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
 
     // TAG for debugging
     private static final String TAG = "MovieGalleryFragment";
@@ -50,6 +60,9 @@ public class MovieGalleryFragment extends Fragment{
     @BindView(R.id.no_connection) TextView mNoConnectionTextView;
 
     private List<GalleryItem> mItems = new ArrayList<>();
+
+    // the adapter
+    private MovieAdapter mMovieAdapter;
 
     // The navigation drawer
     @BindView(R.id.left_drawer) ListView mDrawerList;
@@ -68,6 +81,39 @@ public class MovieGalleryFragment extends Fragment{
 
     // Check network connection
     boolean mNetworkConnected = false;
+
+    // Loader for the database
+    private static final int CURSOR_LOADER_ID = 0;
+
+    // the columns of the database
+
+    static final String[] MOVIE_COLUMNS = {
+            MoviesContract.PopularMovies._ID,
+            MoviesContract.PopularMovies.MOVIE_ID,
+            MoviesContract.PopularMovies.MOVIE_TITLE,
+            MoviesContract.PopularMovies.MOVIE_OVERVIEW,
+            MoviesContract.PopularMovies.MOVIE_POPULARITY,
+            MoviesContract.PopularMovies.MOVIE_GENRE_IDS,
+            MoviesContract.PopularMovies.MOVIE_VOTE_COUNT,
+            MoviesContract.PopularMovies.MOVIE_VOTE_AVERAGE,
+            MoviesContract.PopularMovies.MOVIE_RELEASE_DATE,
+            MoviesContract.PopularMovies.MOVIE_FAVORED,
+            MoviesContract.PopularMovies.MOVIE_POSTER_PATH,
+            MoviesContract.PopularMovies.MOVIE_BACKDROP_PATH
+    };
+
+    static final int COL_CURSOR_ID = 0; // required for the cursor
+    static final int COL_MOVIE_ID = 1;
+    static final int COL_MOVIE_TITLE = 2;
+    static final int COL_MOVIE_OVERVIEW = 3;
+    static final int COL_MOVIE_POPULARITY = 4;
+    static final int COL_MOVIE_GENRE_IDS = 5;
+    static final int COL_MOVIE_VOTE_COUNT = 6;
+    static final int COL_MOVIE_VOTE_AVERAGE = 7;
+    static final int COL_MOVIE_RELEASE_DATE = 8;
+    static final int COL_MOVIE_FAVORED = 9;
+    static final int COL_MOVIE_POSTER_PATH = 10;
+    static final int COL_MOVIE_BACKDROP_PATH = 11;
 
 
     public static MovieGalleryFragment newInstance() {
@@ -102,6 +148,8 @@ public class MovieGalleryFragment extends Fragment{
         }
 
     }
+
+
 
     private void initializeSortOrder() {
         if(QueryPreferences.getStoredOrder(getActivity()) == null) {
@@ -189,6 +237,10 @@ public class MovieGalleryFragment extends Fragment{
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+        getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
+
+
+// network status
         if(mNetworkConnected) {
             mDrawerToggle.syncState();
         }
@@ -209,7 +261,8 @@ public class MovieGalleryFragment extends Fragment{
      */
     private void setupAdapter() {
         if(isAdded()){ // confirms that the fragment has been added to an activity
-            mMovieRecyclerView.setAdapter(new MovieAdapter(mItems));
+           mMovieAdapter = new MovieAdapter(mItems);
+            mMovieRecyclerView.setAdapter(mMovieAdapter);
             Log.d(TAG, "Adapter created");
         }
     }
@@ -313,6 +366,49 @@ public class MovieGalleryFragment extends Fragment{
         return isNetworkConnected;
     }
 
+    // Attach loader to our favorite database query
+    // run when loader is initialized
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Uri uri;
+//        String sortOrder;
+
+        // Favorites
+        uri = MoviesContract.PopularMovies.buildFavoriteMoviesUri();
+
+        CursorLoader loader = new CursorLoader(
+                getActivity(),
+                uri,
+                MOVIE_COLUMNS,
+                null,
+                null,
+                MoviesContract.PopularMovies.SORT_ORDER
+        );
+
+        return loader;
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        if (data.moveToFirst()) {
+            Vector<ContentValues> cVVector = new Vector<ContentValues>(data.getCount());
+
+            do {
+                ContentValues cv = new ContentValues();
+                DatabaseUtils.cursorRowToContentValues(data, cv);
+                cVVector.add(cv);
+            } while(data.moveToNext());
+
+            // TODO: update adapter and view
+            mMovieAdapter.swapCursor(data);
+
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mMovieAdapter.swapCursor(null);
+    }
 
 
     /*
@@ -359,92 +455,127 @@ public class MovieGalleryFragment extends Fragment{
         }
     }
 
-    /**
-     * ViewHolder class
-     */
-    private class MovieHolder extends RecyclerView.ViewHolder{
 
-
-        private ImageView mItemImageView;
-        private TextView mItemTitle;
-        private GalleryItem mGalleryItem;
-
-        public MovieHolder(View itemView) {
-            super(itemView);
-            itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Log.i(TAG, "Item clicked");
-                    Intent intent = new MovieDetailActivity().newIntent(getActivity(), mGalleryItem);
-                    startActivity(intent);
-                }
-            });
-
-            mItemImageView = (ImageView) itemView.findViewById(R.id.fragment_movie_item_thumbnail);
-//                mItemTitle = (TextView) itemView.findViewById(R.id.fragment_movie_item_title);
-
-        }
-
-        public void bindGalleryItem(GalleryItem galleryItem){
-            mGalleryItem = galleryItem;
-        }
-
-    }
-
-    /**
-     * Adapter class
-     */
-    private class MovieAdapter extends RecyclerView.Adapter<MovieHolder> {
-
-        private List<GalleryItem> mGalleryItems;
-
-        // Endless scrolling
-        private int lastBoundPosition;
-
-        public MovieAdapter(List<GalleryItem> galleryItems) {
-            mGalleryItems = galleryItems;
-        }
-
-        @Override
-        public MovieHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            LayoutInflater inflater = LayoutInflater.from(getActivity());
-            View view = inflater.inflate(R.layout.gallery_item, parent, false);
-
-            return new MovieHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(MovieHolder holder, int position) {
-            GalleryItem galleryItem = mGalleryItems.get(position);
-
-            //TODO: Some images like the one from Interstellar are there but do not load into the imageview
-            Picasso.with(getActivity())
-                    .load(galleryItem.getFullPosterPathw342())
-//                    .placeholder(R.drawable.bill_up_close)
-                    .fit()
-                    .into(holder.mItemImageView);
-
-//            Log.d(TAG, "onBindViewHolder: " + galleryItem.getFullPosterPathw185());
-
-//            holder.mItemTitle.setText(galleryItem.getTitle()); // Set title
-            holder.bindGalleryItem(galleryItem);
-
-            lastBoundPosition = position;
-//            Log.i(TAG,"Last bound position is " + Integer.toString(lastBoundPosition));
-
-        }
-
-        @Override
-        public int getItemCount() {
-            return mGalleryItems.size();
-        }
-
-        public int getLastBoundPosition() {
-            return lastBoundPosition;
-        }
-
-    }
-
+//    //TODO: extract this into a new class
+//
+//    private Cursor mAdapterCursor;
+//    private int mPosition = -1;
+//
+//    /**
+//     * ViewHolder class
+//     */
+//    private class MovieHolder extends RecyclerView.ViewHolder{
+//
+//
+//        private ImageView mItemImageView;
+//        private TextView mItemTitle;
+//        private GalleryItem mGalleryItem;
+//
+//        public MovieHolder(View itemView) {
+//            super(itemView);
+//            itemView.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//
+//                    int adapterPosition = getAdapterPosition();
+//                    mAdapterCursor.moveToPosition(adapterPosition);
+//
+//                    int movie_id_column = mAdapterCursor.getColumnIndex(MoviesContract.PopularMovies.MOVIE_ID);
+//                    if(movie_id_column == -1) {
+//                        Log.i(TAG, "Movie not in database"); //TODO: check this
+//                    }
+//
+//                    int movie_id = mAdapterCursor.getInt(movie_id_column);
+//
+//                    Log.i(TAG, "Item clicked");
+//                    Intent intent = new MovieDetailActivity().newIntent(getActivity(), mGalleryItem);
+//                    startActivity(intent);
+//                }
+//            });
+//
+//            mItemImageView = (ImageView) itemView.findViewById(R.id.fragment_movie_item_thumbnail);
+////                mItemTitle = (TextView) itemView.findViewById(R.id.fragment_movie_item_title);
+//
+//        }
+//
+//        public void bindGalleryItem(GalleryItem galleryItem){
+//            mGalleryItem = galleryItem;
+//        }
+//
+//    }
+//
+//    /**
+//     * Adapter class
+//     */
+//    private class MovieAdapter extends RecyclerView.Adapter<MovieHolder>{
+//
+//        private List<GalleryItem> mGalleryItems;
+//
+//        // Endless scrolling
+//        private int lastBoundPosition;
+//
+//        public MovieAdapter(List<GalleryItem> galleryItems) {
+//            mGalleryItems = galleryItems;
+//        }
+//
+//        @Override
+//        public MovieHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+//            LayoutInflater inflater = LayoutInflater.from(getActivity());
+//            View view = inflater.inflate(R.layout.gallery_item, parent, false);
+//
+//            return new MovieHolder(view);
+//        }
+//
+//        @Override
+//        public void onBindViewHolder(MovieHolder holder, int position) {
+//            GalleryItem galleryItem = mGalleryItems.get(position);
+//
+//            mAdapterCursor.moveToPosition(position);
+//            MovieCursorWrapper movieCursorWrapper = new MovieCursorWrapper(mAdapterCursor);
+////            movieCursorWrapper.getFavoriteMovie();
+//
+//            //TODO: Some images like the one from Interstellar are there but do not load into the imageview
+//            Picasso.with(getActivity())
+//                    .load(galleryItem.getFullPosterPathw342())
+////                    .placeholder(R.drawable.bill_up_close)
+//                    .fit()
+//                    .into(holder.mItemImageView);
+//
+////            Log.d(TAG, "onBindViewHolder: " + galleryItem.getFullPosterPathw185());
+//
+////            holder.mItemTitle.setText(galleryItem.getTitle()); // Set title
+//            holder.bindGalleryItem(galleryItem);
+//
+//            lastBoundPosition = position;
+////            Log.i(TAG,"Last bound position is " + Integer.toString(lastBoundPosition));
+//
+//        }
+//
+//        @Override
+//        public int getItemCount() {
+//            return mGalleryItems.size();
+//        }
+//
+//        public int getLastBoundPosition() {
+//            return lastBoundPosition;
+//        }
+//
+//    }
+//
+//    public void swapCursor(Cursor newCursor){
+//        mAdapterCursor = newCursor;
+//        notifyDataSetChanged();
+//    }
+//
+//    public void closeCursor() {
+//        if (mAdapterCursor != null) {
+//            mAdapterCursor.close();
+//        }
+//    }
+//
+//        public Cursor getCursor(){
+//        return mAdapterCursor;
+//    }
 
 
 

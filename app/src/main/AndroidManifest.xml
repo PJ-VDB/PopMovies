@@ -22,6 +22,12 @@
                   android:parentActivityName=".MovieGalleryActivity">
         </activity>
 
+        <provider
+            android:name=".database.MoviesProvider"
+            android:exported="false"
+            android:syncable="true"
+            android:authorities=".database.moviesprovider"/>
+
     </application>
 
 </manifest>
