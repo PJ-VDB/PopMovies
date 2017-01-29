@@ -11,8 +11,6 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.pieter_jan.popmovies.database.MovieCursorWrapper;
-import com.example.pieter_jan.popmovies.database.MoviesContract;
 import com.squareup.picasso.Picasso;
 
 import java.util.List;
@@ -48,15 +46,15 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieHolder>
                 @Override
                 public void onClick(View v) {
 
-                    int adapterPosition = getAdapterPosition();
-                    mAdapterCursor.moveToPosition(adapterPosition);
-
-                    int movie_id_column = mAdapterCursor.getColumnIndex(MoviesContract.PopularMovies.MOVIE_ID);
-                    if (movie_id_column == -1) {
-                        Log.i(TAG, "Movie not in database"); //TODO: check this
-                    }
-
-                    int movie_id = mAdapterCursor.getInt(movie_id_column);
+//                    int adapterPosition = getAdapterPosition();
+//                    mAdapterCursor.moveToPosition(adapterPosition);
+//
+//                    int movie_id_column = mAdapterCursor.getColumnIndex(MoviesContract.PopularMovies.MOVIE_ID);
+//                    if (movie_id_column == -1) {
+//                        Log.i(TAG, "Movie not in database"); //TODO: check this
+//                    }
+//
+//                    int movie_id = mAdapterCursor.getInt(movie_id_column);
 
                     Log.i(TAG, "Item clicked");
                     Intent intent = new MovieDetailActivity().newIntent(mContext, mGalleryItem);
@@ -77,7 +75,8 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieHolder>
 
     // Adapter continued
 
-    public MovieAdapter(Context context) {
+    public MovieAdapter(List<GalleryItem> items, Context context) {
+        mGalleryItems = items;
         mContext = context;
     }
 
@@ -93,8 +92,8 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieHolder>
     public void onBindViewHolder(MovieHolder holder, int position) {
         GalleryItem galleryItem = mGalleryItems.get(position);
 
-        mAdapterCursor.moveToPosition(position);
-        MovieCursorWrapper movieCursorWrapper = new MovieCursorWrapper(mAdapterCursor);
+//        mAdapterCursor.moveToPosition(position);
+//        MovieCursorWrapper movieCursorWrapper = new MovieCursorWrapper(mAdapterCursor);
 //            movieCursorWrapper.getFavoriteMovie();
 
         //TODO: Some images like the one from Interstellar are there but do not load into the imageview
@@ -121,6 +120,22 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieHolder>
 
     public int getLastBoundPosition() {
         return lastBoundPosition;
+    }
+
+
+    public void swapCursor(Cursor newCursor){
+        mAdapterCursor = newCursor;
+        notifyDataSetChanged();
+    }
+
+    public void closeCursor() {
+        if (mAdapterCursor != null) {
+            mAdapterCursor.close();
+        }
+    }
+
+    public Cursor getCursor(){
+        return mAdapterCursor;
     }
 
 }

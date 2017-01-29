@@ -1,7 +1,6 @@
 package com.example.pieter_jan.popmovies;
 
 import android.content.ContentValues;
-import android.content.Intent;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -29,13 +28,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import com.example.pieter_jan.popmovies.database.MovieCursorWrapper;
 import com.example.pieter_jan.popmovies.database.MoviesContract;
-import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +47,7 @@ import static com.example.pieter_jan.popmovies.QueryPreferences.setStoredOrder;
  * Created by pieter-jan on 1/16/2017.
  */
 public class MovieGalleryFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
+//public class MovieGalleryFragment extends Fragment{
 
     // TAG for debugging
     private static final String TAG = "MovieGalleryFragment";
@@ -237,10 +234,10 @@ public class MovieGalleryFragment extends Fragment implements LoaderManager.Load
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
+        getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this); // Initialize loader
 
 
-// network status
+        // network status check
         if(mNetworkConnected) {
             mDrawerToggle.syncState();
         }
@@ -261,7 +258,7 @@ public class MovieGalleryFragment extends Fragment implements LoaderManager.Load
      */
     private void setupAdapter() {
         if(isAdded()){ // confirms that the fragment has been added to an activity
-           mMovieAdapter = new MovieAdapter(mItems);
+           mMovieAdapter = new MovieAdapter(mItems, getContext());
             mMovieRecyclerView.setAdapter(mMovieAdapter);
             Log.d(TAG, "Adapter created");
         }
